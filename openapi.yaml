@@ -1,0 +1,515 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: openrouter
+    description: OpenRouter AI chat operations
+paths:
+  /debug/inference:
+    get:
+      operationId: getInferenceDebug
+      tags: [health]
+      summary: Run a live inference probe and return model/provider diagnostics
+      responses:
+        "200":
+          description: Inference diagnostics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InferenceDebug"
+        "500":
+          description: Probe failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenrouterError"
+  /model-config:
+    get:
+      operationId: getModelConfig
+      tags: [health]
+      summary: Get the currently saved model config
+      responses:
+        "200":
+          description: Active model config
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelInfo"
+    put:
+      operationId: updateModelConfig
+      tags: [health]
+      summary: Persist a new model selection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModelConfigInput"
+      responses:
+        "200":
+          description: Updated model config
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelInfo"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenrouterError"
+  /system-prompt:
+    get:
+      operationId: getSystemPrompt
+      tags: [health]
+      summary: Get the active system prompt
+      responses:
+        "200":
+          description: Active system prompt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemPromptConfig"
+    put:
+      operationId: updateSystemPrompt
+      tags: [health]
+      summary: Persist a new system prompt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SystemPromptInput"
+      responses:
+        "200":
+          description: Updated system prompt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemPromptConfig"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenrouterError"
+  /available-models:
+    get:
+      operationId: listAvailableModels
+      tags: [health]
+      summary: List models available on OpenRouter
+      responses:
+        "200":
+          description: Available models
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AvailableModel"
+        "500":
+          description: Fetch failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenrouterError"
+  /model-info:
+    get:
+      operationId: getModelInfo
+      tags: [health]
+      summary: Get the active inference model identifier
+      responses:
+        "200":
+          description: Active model info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelInfo"
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /openrouter/conversations:
+    get:
+      operationId: listOpenrouterConversations
+      tags: [openrouter]
+      summary: List all conversations
+      responses:
+        "200":
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OpenrouterConversation"
+    post:
+      operationId: createOpenrouterConversation
+      tags: [openrouter]
+      summary: Create a new conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpenrouterConversationInput"
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenrouterConversation"
+  /openrouter/conversations/search:
+    get:
+      operationId: searchOpenrouterConversations
+      tags: [openrouter]
+      summary: Search conversations by title or message content
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ConversationSearchResult"
+  /openrouter/conversations/{id}:
+    get:
+      operationId: getOpenrouterConversation
+      tags: [openrouter]
+      summary: Get conversation with messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenrouterConversationWithMessages"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenrouterError"
+    patch:
+      operationId: updateOpenrouterConversation
+      tags: [openrouter]
+      summary: Update a conversation (e.g. rename title)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOpenrouterConversationInput"
+      responses:
+        "200":
+          description: Updated conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenrouterConversation"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenrouterError"
+    delete:
+      operationId: deleteOpenrouterConversation
+      tags: [openrouter]
+      summary: Delete a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenrouterError"
+  /openrouter/conversations/{id}/generate-title:
+    post:
+      operationId: generateOpenrouterConversationTitle
+      tags: [openrouter]
+      summary: Generate an AI title for the conversation based on its first message
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Generated title
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeneratedTitle"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenrouterError"
+        "500":
+          description: Generation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenrouterError"
+  /openrouter/conversations/{id}/messages:
+    get:
+      operationId: listOpenrouterMessages
+      tags: [openrouter]
+      summary: List messages in a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OpenrouterMessage"
+    post:
+      operationId: sendOpenrouterMessage
+      tags: [openrouter]
+      summary: Send a message and receive an AI response (SSE stream)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpenrouterMessageInput"
+      responses:
+        "200":
+          description: SSE stream of assistant response chunks
+          content:
+            text/event-stream: {}
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    InferenceDebug:
+      type: object
+      properties:
+        configuredModel:
+          type: string
+        actualModel:
+          type: string
+        provider:
+          type: string
+      required:
+        - configuredModel
+        - actualModel
+        - provider
+    GeneratedTitle:
+      type: object
+      properties:
+        title:
+          type: string
+      required:
+        - title
+    ModelInfo:
+      type: object
+      properties:
+        model:
+          type: string
+      required:
+        - model
+    ModelConfigInput:
+      type: object
+      properties:
+        model:
+          type: string
+      required:
+        - model
+    SystemPromptConfig:
+      type: object
+      properties:
+        prompt:
+          type: string
+        isDefault:
+          type: boolean
+      required:
+        - prompt
+        - isDefault
+    SystemPromptInput:
+      type: object
+      properties:
+        prompt:
+          type: string
+      required:
+        - prompt
+    AvailableModel:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      required:
+        - id
+        - name
+    OpenrouterConversation:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - createdAt
+    OpenrouterMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        conversationId:
+          type: integer
+        role:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - conversationId
+        - role
+        - content
+        - createdAt
+    ConversationSearchResult:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+        snippet:
+          type: string
+      required:
+        - id
+        - title
+        - createdAt
+        - snippet
+    UpdateOpenrouterConversationInput:
+      type: object
+      properties:
+        title:
+          type: string
+      required:
+        - title
+    OpenrouterConversationInput:
+      type: object
+      properties:
+        title:
+          type: string
+      required:
+        - title
+    OpenrouterMessageInput:
+      type: object
+      properties:
+        content:
+          type: string
+        imageBase64:
+          type: string
+          description: Base64-encoded image data (without data URL prefix)
+        imageMimeType:
+          type: string
+          description: MIME type of the image e.g. image/jpeg
+      required:
+        - content
+    OpenrouterConversationWithMessages:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/OpenrouterMessage"
+      required:
+        - id
+        - title
+        - createdAt
+        - messages
+    OpenrouterError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
